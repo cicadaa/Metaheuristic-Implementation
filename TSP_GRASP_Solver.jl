@@ -29,6 +29,13 @@ function getDistanceMatrix(coord::Array{Float32,2},dim::Int32)
     return dist
 end
 
+#GRASP find neighbors
+# function RandomGenerator(range)
+#     # println(seed) #use time stamp as seed
+#     #Random.seed!(seed)
+#     return rand(range[1]:range[2])
+# end
+
 function findNext(visited, curDist, bound::Int64)
     indexedDist = []
     neighbors = [] #store n neighbors
@@ -48,48 +55,87 @@ function findNext(visited, curDist, bound::Int64)
         end
     end
     seed = parse(Int64, Dates.format(Dates.now(), "yyyymmddHHMMSS"))
-    Random.seed!(seed)
-    neighborIndex = rand(1:length(neighbors)) # generate random index to pick a neighbor
+
+    neighborIndex = rand(1 : length(neighbors))
+    # println(neighborIndex)
     return neighbors[neighborIndex] # println("neighbor" * string(neighbors[neighborIndex]))
 end
 
-function findPath(dist)
+function findRoute(dist)
     dim = length(dist[1, : ])
-    visited = zeros(Int32,dim)
     visitedCity = Set{Int64}()
-    vistsequence = zeros(Int32,dim)
-    vistsequence[1] = 1
-    next = 1    #next city to visit
+    route = zeros(Int32,dim)
+    route[1] = 1
+    next = 1    #index of next city to visit
     push!(visitedCity, next)
-    k = 2   #bound for random find k nearest neighbors
+    k = 5   #bound for random find k nearest neighbors
     for i in 2:dim
         index = findNext(visitedCity, dist[next, : ], k) # println("index: "* string(index))
         next = index
-        vistsequence[i] = next
+        route[i] = next
         push!(visitedCity, next)
     end
-    return vistsequence
+    return route
 end
 
-function getCost(vistsequence, dist)
+function getCost(route, dist)
     totalDist = 0
-    for i in 1:length(vistsequence)-1
-        totalDist += dist[vistsequence[i], vistsequence[i+1]] # println(string(vistsequence[i]) * " : " * string(vistsequence[i+1]))
+    for i in 1:length(route)-1
+        totalDist += dist[route[i], route[i+1]] # println(string(route[i]) * " : " * string(route[i+1]))
     end
-    totalDist += dist[vistsequence[length(vistsequence)], 1] #closed circle
-    return totalDist # println(string(vistsequence[length(vistsequence)]) * " : " * "1")
+    totalDist += dist[route[length(route)], 1] #closed circle
+    return totalDist # println(string(route[length(route)]) * " : " * "1")
+end
+
+
+
+#local search part
+function getCandidate(route)
+    candidate = copy(route)
+    stop = false
+    # while stop == false
+    i = rand(1:length(candidate))
+    j = rand(1:length(candidate))
+    # println("i:"*string(i)*" j:"*string(j))
+    if i < j
+        i, j = j, i
+    end
+    candidate[i : j] = reverse(candidate[i:j])
+    return candidate
+end
+
+function Local_search(dist, route, attemptsNum)
+    count = 0
+    route_local = copy(route)
+    minCost = getCost(route, dist)
+    while count < attemptsNum
+        # println("finding candidate")
+        candidate_route = getCandidate(route_local)
+        # println("get cost")
+        cost_local = getCost(candidate_route, dist)
+        if cost_local < minCost
+            # println("..")
+            route_local = copy(candidate_route)
+            minCost = cost_local
+            count = 0
+        else
+            # println("..")
+            count += 1
+        end
+    end
+    return route_local, minCost
 end
 
 function TSP_Solver(filename)
-    coord,dim = readInstance(filename)
+    coord, dim = readInstance(filename)
     dist = getDistanceMatrix(coord, dim)
-    vistsequence = findPath(dist)
-    cost = getCost(vistsequence, dist)
-    println(cost)
-    println(dist)
-    return dist, vistsequence
+    route = [1, 3, 9, 5, 6, 7, 8, 2, 10, 4]#findRoute(dist)
+    local_route, local_result = Local_search(dist, route, 100)
+    println("local_minima")
+    println(local_result)
+    # println(dist)
+    # return dist, route
 end
 
-# function Local_search()
 #
 # function GRASP_search()

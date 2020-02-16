@@ -74,5 +74,5 @@ function TSP_Solver(filename)
     cost = getCost(vistsequence, dist)
     println(cost)
     #println(dist)
-    return dist#, vistsequence
+    return dist, vistsequence
 end
