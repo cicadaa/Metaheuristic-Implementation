@@ -97,10 +97,11 @@ function getCandidate(route)
     i = rand(1:length(candidate))
     j = rand(1:length(candidate))
     # println("i:"*string(i)*" j:"*string(j))
-    if i < j
+    if i > j
         i, j = j, i
     end
     candidate[i : j] = reverse(candidate[i:j])
+
     return candidate
 end
 
@@ -108,6 +109,7 @@ function Local_search(dist, route, attemptsNum)
     count = 0
     route_local = copy(route)
     minCost = getCost(route, dist)
+
     while count < attemptsNum
         # println("finding candidate")
         candidate_route = getCandidate(route_local)
@@ -118,8 +120,8 @@ function Local_search(dist, route, attemptsNum)
             route_local = copy(candidate_route)
             minCost = cost_local
             count = 0
+            println(minCost)
         else
-            # println("..")
             count += 1
         end
     end
@@ -129,10 +131,10 @@ end
 function TSP_Solver(filename)
     coord, dim = readInstance(filename)
     dist = getDistanceMatrix(coord, dim)
-    route = [1, 3, 9, 5, 6, 7, 8, 2, 10, 4]#findRoute(dist)
-    local_route, local_result = Local_search(dist, route, 100)
-    println("local_minima")
-    println(local_result)
+    route = findRoute(dist)
+    local_route, local_result = Local_search(dist, route, 50)
+    # println("local_minima")
+    # println(local_result)
     # println(dist)
     # return dist, route
 end
