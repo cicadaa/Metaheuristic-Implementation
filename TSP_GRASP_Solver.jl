@@ -16,7 +16,6 @@ function readInstance(filename)
     return coord,dim
 end
 
-
 function getDistanceMatrix(coord::Array{Float32,2},dim::Int32)
     dist = zeros(Float32,dim,dim)
     for i in 1:dim
@@ -36,7 +35,7 @@ end
 #     return rand(range[1]:range[2])
 # end
 
-function findNext(visited, curDist, bound::Int64)
+function findNext(visited, curDist, bound::Int64)  #GRASP find nearest N cities, (n == bound)
     indexedDist = []
     neighbors = [] #store n neighbors
 
@@ -54,8 +53,8 @@ function findNext(visited, curDist, bound::Int64)
             bound -= 1
         end
     end
-    seed = parse(Int64, Dates.format(Dates.now(), "yyyymmddHHMMSS"))
-
+    # seed = parse(Int64, Dates.format(Dates.now(), "yyyymmddHHMMSS"))
+    # Rand.seed!(seed)
     neighborIndex = rand(1 : length(neighbors))
     # println(neighborIndex)
     return neighbors[neighborIndex] # println("neighbor" * string(neighbors[neighborIndex]))
@@ -120,7 +119,7 @@ function Local_search(dist, route, attemptsNum)
             route_local = copy(candidate_route)
             minCost = cost_local
             count = 0
-            println(minCost)
+            # println(minCost)
         else
             count += 1
         end
@@ -129,14 +128,29 @@ function Local_search(dist, route, attemptsNum)
 end
 
 function TSP_Solver(filename)
+    #read data
     coord, dim = readInstance(filename)
     dist = getDistanceMatrix(coord, dim)
-    route = findRoute(dist)
-    local_route, local_result = Local_search(dist, route, 50)
-    # println("local_minima")
-    # println(local_result)
-    # println(dist)
-    # return dist, route
+
+    #time limit
+    startTime = time_ns()
+
+    #random seed
+    seed = parse(Int64, Dates.format(Dates.now(), "yyyymmddHHMMSS"))
+    Random.seed!(seed)
+
+    #initial ans
+    final_solution = missing
+
+    while round( (time_ns()-startTime)/1e9,digits=3) < 10
+        route = findRoute(dist)
+        cost = getCost(route, dist)
+        local_route, local_cost = Local_search(dist, route, 50)
+        if local_cost < cost
+            final_solution = local_cost
+        end
+    end
+
 end
 
 #
