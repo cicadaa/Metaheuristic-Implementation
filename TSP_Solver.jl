@@ -22,7 +22,7 @@ function getDistanceMatrix(coord::Array{Float32,2},dim::Int32)
     for i in 1:dim
        for j in 1:dim
             if i!=j
-                dist[i,j]=round(sqrt((coord[i,1]-coord[j,1])^2+(coord[i,2]-coord[j,2])^2),digits=2)
+                dist[i,j]=round(sqrt((coord[i,1]-coord[j,1])^2+(coord[i,2]-coord[j,2])^2),digits=0)
             end
         end
     end
@@ -70,6 +70,8 @@ end
 function TSP_Solver(filename)
     coord,dim = readInstance(filename)
     dist = getDistanceMatrix(coord, dim)
+    println(sum(dist[1,:]))
+
     vistsequence = findPath(dist)
     cost = getCost(vistsequence, dist)
     println(cost)

@@ -21,61 +21,53 @@ function getDistanceMatrix(coord::Array{Float32,2},dim::Int32)
     for i in 1:dim
        for j in 1:dim
             if i!=j
-                dist[i,j]=round(sqrt((coord[i,1]-coord[j,1])^2+(coord[i,2]-coord[j,2])^2),digits=2)
+                dist[i,j]=round(sqrt((coord[i,1]-coord[j,1])^2+(coord[i,2]-coord[j,2])^2),digits=0)
             end
         end
     end
     return dist
 end
 
-#GRASP find neighbors
-# function RandomGenerator(range)
-#     # println(seed) #use time stamp as seed
-#     #Random.seed!(seed)
-#     return rand(range[1]:range[2])
-# end
 
+#GRASP
 function findNext(visited, curDist, bound::Int64)  #GRASP find nearest N cities, (n == bound)
     indexedDist = []
     neighbors = [] #store n neighbors
 
     for i in 1:length(curDist) #sort cities by distance
-        append!(indexedDist, [(i, curDist[i])])
+        append!(indexedDist, [(curDist[i],i)])
     end
     sortedDist = sort(indexedDist, by = first)
-
     for j in 1:length(curDist) #find neighbors
         if bound == 0
             break
         end
-        if !(sortedDist[j][1] in visited) #make sure the neighbor is not visited
-            append!(neighbors, sortedDist[j][1])
+        if visited[sortedDist[j][2]] == 0 #make sure the neighbor is not visited
+            append!(neighbors, sortedDist[j][2])
             bound -= 1
         end
     end
-    # seed = parse(Int64, Dates.format(Dates.now(), "yyyymmddHHMMSS"))
-    # Rand.seed!(seed)
     neighborIndex = rand(1 : length(neighbors))
-    # println(neighborIndex)
-    return neighbors[neighborIndex] # println("neighbor" * string(neighbors[neighborIndex]))
+    return neighbors[neighborIndex]
 end
 
-function findRoute(dist)
-    dim = length(dist[1, : ])
-    visitedCity = Set{Int64}()
+function GRASP_findRoute(dist, dim, k)
+    visited = zeros(Int32,dim)
     route = zeros(Int32,dim)
-    route[1] = 1
-    next = 1    #index of next city to visit
-    push!(visitedCity, next)
-    k = 5   #bound for random find k nearest neighbors
+    next = rand(1:dim)  #index of next city to visit
+    visited[next] = 1
+    route[1] = next
     for i in 2:dim
-        index = findNext(visitedCity, dist[next, : ], k) # println("index: "* string(index))
+        index = findNext(visited, dist[next, : ], k)
+        println("index: "* string(index))
         next = index
         route[i] = next
-        push!(visitedCity, next)
+        visited[next] = 1
     end
-    return route
+    cost = getCost(route, dist)
+    return route, cost
 end
+
 
 function getCost(route, dist)
     totalDist = 0
@@ -83,75 +75,68 @@ function getCost(route, dist)
         totalDist += dist[route[i], route[i+1]] # println(string(route[i]) * " : " * string(route[i+1]))
     end
     totalDist += dist[route[length(route)], 1] #closed circle
-    return totalDist # println(string(route[length(route)]) * " : " * "1")
+    return totalDist
 end
 
 
 
-#local search part
+#local search
 function getCandidate(route)
     candidate = copy(route)
     stop = false
-    # while stop == false
     i = rand(1:length(candidate))
     j = rand(1:length(candidate))
-    # println("i:"*string(i)*" j:"*string(j))
     if i > j
         i, j = j, i
     end
     candidate[i : j] = reverse(candidate[i:j])
-
     return candidate
 end
 
 function Local_search(dist, route, attemptsNum)
     count = 0
-    route_local = copy(route)
+    route_optimal = copy(route)
     minCost = getCost(route, dist)
+    startTime = time_ns()
+    while round( (time_ns()-startTime)/1e9,digits=3) < 3
 
-    while count < attemptsNum
-        # println("finding candidate")
-        candidate_route = getCandidate(route_local)
-        # println("get cost")
+    # while count < attemptsNum
+        candidate_route = getCandidate(route_optimal)
         cost_local = getCost(candidate_route, dist)
         if cost_local < minCost
-            # println("..")
-            route_local = copy(candidate_route)
+            route_optimal = copy(candidate_route)
             minCost = cost_local
             count = 0
-            # println(minCost)
         else
             count += 1
         end
     end
-    return route_local, minCost
+    return route_optimal, minCost
 end
 
 function TSP_Solver(filename)
     #read data
     coord, dim = readInstance(filename)
     dist = getDistanceMatrix(coord, dim)
-
-    #time limit
     startTime = time_ns()
 
-    #random seed
-    seed = parse(Int64, Dates.format(Dates.now(), "yyyymmddHHMMSS"))
-    Random.seed!(seed)
-
     #initial ans
-    final_solution = missing
+    initroute = findPathGreedy(dist)
+    greedy_solution = getCost(initroute, dist)
+    final_route, final_solution = GRASP_findRoute(dist, dim, initroute, 3)
 
-    while round( (time_ns()-startTime)/1e9,digits=3) < 10
-        route = findRoute(dist)
-        cost = getCost(route, dist)
-        local_route, local_cost = Local_search(dist, route, 50)
-        if local_cost < cost
+    while round((time_ns()-startTime)/1e9,digits=3) < 60
+        route, cost = GRASP_findRoute(dist, dim, final_route, 3)
+        local_route, local_cost = Local_search(dist, route, 10)
+        if local_cost < final_solution
             final_solution = local_cost
+            final_route = local_route
+            println(final_solution)
         end
     end
-
+    println(final_route)
+    println(final_solution)
 end
 
+# parameters
 #
-# function GRASP_search()
