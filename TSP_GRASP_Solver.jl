@@ -42,7 +42,7 @@ function findNext(visited, curDist, bound::Int64)  #GRASP find nearest N cities,
         if bound == 0
             break
         end
-        if visited[sortedDist[j][2]] == 0 #make sure the neighbor is not visited
+        if visited[sortedDist[j][2]] == 0 #make sure the neighbor not visited
             append!(neighbors, sortedDist[j][2])
             bound -= 1
         end
@@ -72,7 +72,7 @@ end
 function getCost(route, dist)
     totalDist = 0
     for i in 1:length(route)-1
-        totalDist += dist[route[i], route[i+1]] # println(string(route[i]) * " : " * string(route[i+1]))
+        totalDist += dist[route[i], route[i+1]]
     end
     totalDist += dist[route[length(route)], 1] #closed circle
     return totalDist
@@ -98,9 +98,7 @@ function Local_search(dist, route, attemptsNum)
     route_optimal = copy(route)
     minCost = getCost(route, dist)
     startTime = time_ns()
-    while round( (time_ns()-startTime)/1e9,digits=3) < 3
-
-    # while count < attemptsNum
+    while round( (time_ns()-startTime)/1e9,digits=3) < 3 #serach time limitation
         candidate_route = getCandidate(route_optimal)
         cost_local = getCost(candidate_route, dist)
         if cost_local < minCost
@@ -115,19 +113,26 @@ function Local_search(dist, route, attemptsNum)
 end
 
 function TSP_Solver(filename)
-    #read data
+    #prepare data
     coord, dim = readInstance(filename)
     dist = getDistanceMatrix(coord, dim)
     startTime = time_ns()
 
-    #initial ans
+    #initial solution
     initroute = findPathGreedy(dist)
     greedy_solution = getCost(initroute, dist)
     final_route, final_solution = GRASP_findRoute(dist, dim, initroute, 3)
 
-    while round((time_ns()-startTime)/1e9,digits=3) < 60
+    #repeat
+    while round((time_ns()-startTime)/1e9,digits=3) < 60   #while not terminate
+
+        #GreedyRandomizedConstruction
         route, cost = GRASP_findRoute(dist, dim, final_route, 3)
+
+        #LocalSearch
         local_route, local_cost = Local_search(dist, route, 10)
+
+        #if Cost < bestCost 
         if local_cost < final_solution
             final_solution = local_cost
             final_route = local_route
@@ -138,5 +143,8 @@ function TSP_Solver(filename)
     println(final_solution)
 end
 
-# parameters
-#
+# parameters record
+#01 set
+#   GRASP_findRoute(dist, dim, final_route, 3)
+#   Local_search(dist, route, 10)
+#   time 60s
