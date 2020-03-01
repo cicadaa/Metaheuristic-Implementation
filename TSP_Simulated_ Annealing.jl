@@ -103,3 +103,7 @@ function SA_Solver(file , alpha, T)
     println(minCost)
     println(minsolution)
 end
+
+
+#parameters
+# time 100s alpha 0.98 temprature 100
